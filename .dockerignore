@@ -1,0 +1,14 @@
+# Segredos - NUNCA copiar para a imagem
+.env
+credentials_google.json
+
+# Git e caches
+.git/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Nao usado nos servicos
+inspecao/
+*.xlsx

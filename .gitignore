@@ -1,0 +1,13 @@
+# Segredos - NUNCA subir
+.env
+credentials_google.json
+
+# Planilhas geradas localmente
+cadastros.xlsx
+distratos.xlsx
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

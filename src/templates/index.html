@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Operadores</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topo">
+    <span>Cadastro de Operadores</span>
+    <span class="user"><a href="{{ url_for('logout') }}">sair</a></span>
+  </header>
+
+  <main class="container">
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% for categoria, msg in mensagens %}
+        <div class="flash {{ categoria }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="abas">
+      <button type="button" class="aba ativa" data-alvo="form-cadastro" id="btn-cadastro">CADASTRO</button>
+      <button type="button" class="aba" data-alvo="form-distrato" id="btn-distrato">DISTRATO</button>
+    </div>
+
+    <!-- CADASTRO -->
+    <form id="form-cadastro" class="painel" method="POST" action="{{ url_for('cadastro') }}" novalidate>
+
+      <div class="resumo-erros {% if not erros %}oculto{% endif %}" id="resumo-erros">
+        <p><strong>Revise os campos indicados antes de finalizar:</strong></p>
+        <ul id="lista-erros">
+          {% for campo, msg in (erros or {}).items() %}<li>{{ msg }}</li>{% endfor %}
+        </ul>
+      </div>
+
+      <label>Nome completo</label>
+      <input type="text" name="nome" value="{{ (valores.nome if valores else '') }}"
+             class="{% if erros and erros.nome %}campo-erro{% endif %}" required>
+      {% if erros and erros.nome %}<p class="erro-inline">{{ erros.nome }}</p>{% endif %}
+      <p class="ajuda">Digite exatamente igual está no CCMEI.</p>
+
+      <label>CPF</label>
+      <input type="text" name="cpf" inputmode="numeric" maxlength="14"
+             placeholder="000.000.000-00" value="{{ (valores.cpf if valores else '') }}"
+             class="{% if erros and erros.cpf %}campo-erro{% endif %}" required>
+      {% if erros and erros.cpf %}<p class="erro-inline">{{ erros.cpf }}</p>{% endif %}
+
+      <label>Data de nascimento</label>
+      <input type="text" name="nascimento" inputmode="numeric" maxlength="10"
+             placeholder="DD/MM/AAAA" value="{{ (valores.nascimento if valores else '') }}"
+             class="{% if erros and erros.nascimento %}campo-erro{% endif %}" required>
+      {% if erros and erros.nascimento %}<p class="erro-inline">{{ erros.nascimento }}</p>{% endif %}
+
+      <label>Projeto(s) o qual irá discar</label>
+      <div class="checkbox-grupo {% if erros and erros.projetos %}campo-erro{% endif %}" id="grupo-projetos">
+        {% for p in projetos %}
+        <label class="check"><input type="checkbox" name="projetos" value="{{ p }}"
+          {% if valores and p in valores.projetos %}checked{% endif %}> {{ p }}</label>
+        {% endfor %}
+      </div>
+      {% if erros and erros.projetos %}<p class="erro-inline">{{ erros.projetos }}</p>{% endif %}
+
+      <label>Nível de acesso</label>
+      <select name="nivel_acesso" class="{% if erros and erros.nivel_acesso %}campo-erro{% endif %}" required>
+        <option value="" disabled {% if not (valores and valores.nivel_acesso) %}selected{% endif %}>Selecione o nível…</option>
+        {% for n in niveis %}
+        <option value="{{ n }}" {% if valores and valores.nivel_acesso == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+      {% if erros and erros.nivel_acesso %}<p class="erro-inline">{{ erros.nivel_acesso }}</p>{% endif %}
+
+      <button type="submit" class="btn verde">Finalizar cadastro</button>
+    </form>
+
+    <!-- DISTRATO -->
+    <form id="form-distrato" class="painel oculto" method="POST" action="{{ url_for('distrato') }}">
+      <p class="ajuda">Para o distrato, informe o CPF do operador e a senha de distrato.</p>
+      <label>CPF</label>
+      <input type="text" name="cpf_distrato" inputmode="numeric" maxlength="14"
+             placeholder="000.000.000-00" required>
+
+      <label>Senha de distrato</label>
+      <input type="password" name="senha_distrato" required>
+
+      <button type="submit" class="btn vermelho">Registrar distrato</button>
+    </form>
+  </main>
+
+  <script>
+    // ---- troca de abas ----
+    const btnC = document.getElementById('btn-cadastro');
+    const btnD = document.getElementById('btn-distrato');
+    const fC = document.getElementById('form-cadastro');
+    const fD = document.getElementById('form-distrato');
+    btnC.onclick = () => { fC.classList.remove('oculto'); fD.classList.add('oculto'); btnC.classList.add('ativa'); btnD.classList.remove('ativa'); };
+    btnD.onclick = () => { fD.classList.remove('oculto'); fC.classList.add('oculto'); btnD.classList.add('ativa'); btnC.classList.remove('ativa'); };
+
+    // ---- mascaras ----
+    function mascaraCpf(v) {
+      v = v.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 9) return v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+      if (v.length > 6) return v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+      if (v.length > 3) return v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+      return v;
+    }
+    function mascaraData(v) {
+      v = v.replace(/\D/g, '').slice(0, 8);
+      if (v.length > 4) return v.replace(/(\d{2})(\d{2})(\d{1,4})/, '$1/$2/$3');
+      if (v.length > 2) return v.replace(/(\d{2})(\d{1,2})/, '$1/$2');
+      return v;
+    }
+    document.querySelectorAll("input[name='cpf'], input[name='cpf_distrato']").forEach(el => {
+      const aplicar = () => { el.value = mascaraCpf(el.value); };
+      el.addEventListener('input', aplicar); aplicar();
+    });
+    const inpNome = fC.querySelector("[name='nome']");
+    const inpCpf = fC.querySelector("[name='cpf']");
+    const inpNasc = fC.querySelector("[name='nascimento']");
+    const selNivel = fC.querySelector("[name='nivel_acesso']");
+    const grupoProj = document.getElementById('grupo-projetos');
+    const resumo = document.getElementById('resumo-erros');
+    const listaErros = document.getElementById('lista-erros');
+
+    const aplicarData = () => { inpNasc.value = mascaraData(inpNasc.value); };
+    inpNasc.addEventListener('input', aplicarData); aplicarData();
+    // nome: bloqueia numeros e simbolos ao digitar
+    inpNome.addEventListener('input', () => {
+      inpNome.value = inpNome.value.replace(/[^A-Za-zÀ-ÿ '\-]/g, '');
+    });
+
+    // ---- validacoes (espelham o servidor; o servidor e a regra que vale) ----
+    function cpfValido(cpf) {
+      cpf = cpf.replace(/\D/g, '');
+      if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+      for (let t = 9; t < 11; t++) {
+        let soma = 0;
+        for (let i = 0; i < t; i++) soma += parseInt(cpf[i]) * ((t + 1) - i);
+        let d = ((soma * 10) % 11) % 10;
+        if (d !== parseInt(cpf[t])) return false;
+      }
+      return true;
+    }
+    function nomeInvalido(n) {
+      n = n.trim().replace(/\s+/g, ' ');
+      if (!n) return 'Informe o nome completo.';
+      if (/\d/.test(n)) return 'O nome não pode conter números.';
+      if (/[^A-Za-zÀ-ÿ '\-]/.test(n)) return 'O nome contém caracteres inválidos.';
+      const partes = n.split(' ').filter(Boolean);
+      if (partes.length < 2) return 'Informe o nome completo (nome e sobrenome).';
+      if (partes.some(p => p.length < 2)) return 'Nome com partes muito curtas; revise.';
+      return null;
+    }
+    function dataInvalida(t) {
+      t = t.trim();
+      if (!t) return 'Informe a data de nascimento.';
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t);
+      if (!m) return 'Data inválida. Use o formato DD/MM/AAAA.';
+      const d = +m[1], mth = +m[2], y = +m[3];
+      const dt = new Date(y, mth - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mth - 1 || dt.getDate() !== d) return 'Data inválida.';
+      const hoje = new Date();
+      if (dt > hoje) return 'Data de nascimento no futuro.';
+      const idade = (hoje - dt) / (365.25 * 24 * 3600 * 1000);
+      if (idade < 16 || idade > 100) return 'Idade fora do intervalo esperado (16 a 100 anos).';
+      return null;
+    }
+    function marca(el, temErro) { if (el) el.classList.toggle('campo-erro', temErro); }
+
+    fC.addEventListener('submit', (e) => {
+      const mensagens = [];
+      [inpNome, inpCpf, inpNasc, selNivel, grupoProj].forEach(el => marca(el, false));
+
+      const en = nomeInvalido(inpNome.value);
+      if (en) { mensagens.push(en); marca(inpNome, true); }
+
+      if (!inpCpf.value.trim()) { mensagens.push('Informe o CPF.'); marca(inpCpf, true); }
+      else if (!cpfValido(inpCpf.value)) { mensagens.push('CPF inválido (verifique os números).'); marca(inpCpf, true); }
+
+      const ed = dataInvalida(inpNasc.value);
+      if (ed) { mensagens.push(ed); marca(inpNasc, true); }
+
+      if (fC.querySelectorAll("[name='projetos']:checked").length === 0) {
+        mensagens.push('Selecione ao menos um projeto.'); marca(grupoProj, true);
+      }
+      if (!selNivel.value) { mensagens.push('Selecione o nível de acesso.'); marca(selNivel, true); }
+
+      if (mensagens.length) {
+        e.preventDefault();
+        listaErros.innerHTML = '';
+        mensagens.forEach(msg => { const li = document.createElement('li'); li.textContent = msg; listaErros.appendChild(li); });
+        resumo.classList.remove('oculto');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  </script>
+</body>
+</html>

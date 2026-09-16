@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Cadastro de Operadores</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="tela-login">
+  <form class="card-login" method="POST" action="{{ url_for('login') }}">
+    <h1>Cadastro de Operadores</h1>
+    <p class="sub">Acesso restrito</p>
+
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% for categoria, msg in mensagens %}
+        <div class="flash {{ categoria }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <label>Senha de acesso</label>
+    <input type="password" name="senha" autocomplete="current-password" required autofocus>
+
+    <button type="submit" class="btn azul">Entrar</button>
+  </form>
+</body>
+</html>
